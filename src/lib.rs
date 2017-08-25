@@ -117,7 +117,7 @@ impl Into<f32> for EngineFuelRate {
 
 
 /// Encode the value for a given mode and PID
-pub fn encode(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> {
+pub fn encode_pid(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> {
     if mode == 0x01 {
         if pid == 0x05 {
             match value.downcast_ref::<i16>() {
@@ -251,13 +251,13 @@ mod tests {
     }
 
     #[test]
-    fn test_encode() {
+    fn test_encode_pid() {
         let mode = 0x01;
         let pid = 0x05;
 
         let temp: i16 = 83; // Degrees C
 
-        let encoded = encode(mode, pid, &temp);
+        let encoded = encode_pid(mode, pid, &temp);
 
         assert_eq!(encoded.unwrap(), vec![0x7B]);
     }
