@@ -3,6 +3,8 @@ use std::any::Any;
 mod util;
 
 pub type ObdValue = Vec<u8>;
+pub type ObdQuery = Vec<u8>;
+pub type ObdResponse = Vec<u8>;
 
 /// Convert internal representation into a byte-stream
 pub trait Encode {
@@ -159,6 +161,31 @@ pub fn encode_pid(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static s
 }
 
 
+fn encode_query(mode: u8, pid: u8) -> Result<ObdQuery, &'static str> {
+    // TODO check that Mode and PID match and are in range
+    Ok(vec![mode, pid])
+}
+
+fn decode_query(query: &ObdQuery) -> Result<(u8, u8), &'static str> {
+    // TODO Check that Mode and PID match and are in range
+    Ok((query[0], query[1]))
+}
+
+fn construct_reponse(query: &ObdQuery, data: &ObdValue) -> Result<ObdResponse, &'static str> {
+    let mut response = vec![query[0]+0x40, query[1]];
+    response.extend(data);
+    Ok(response)
+}
+
+fn parse_reponse(response: &ObdResponse) -> Result<(u8, u8, ObdValue), &'static str> {
+    // Todo Check that the mode and PID is sensible
+    let mode = response[0] - 0x40;
+    let pid = response[1];
+    let value = response[2..].to_vec();
+    Ok((mode, pid, value))
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,5 +287,29 @@ mod tests {
         let encoded = encode_pid(mode, pid, &temp);
 
         assert_eq!(encoded.unwrap(), vec![0x7B]);
+    }
+
+    #[test]
+    fn test_roundtrip() {
+        let mode = 0x01;
+        let pid = 0x0D;
+        let real_speed: u8 = 74;
+
+        // At the local end, ask the question
+        let query = encode_query(mode, pid).expect("Encoding failed");
+        // At the remote end, receive the query and work out what it means
+        let (remote_mode, remote_pid) = decode_query(&query).expect("Decoding failed");
+        // Ask the system for the real value
+        let remote_value = encode_pid(remote_mode, remote_pid, &real_speed).expect("Encoding failed");
+        // Construct the message to send back
+        let response = construct_reponse(&query, &remote_value).expect("Decoding failed");
+        // At the local end again, unpack the response
+        let (returned_mode, returned_pid, returned_value) = parse_reponse(&response).expect("Parse failed");
+        // and decode the value returned
+        let returned_speed = VehicleSpeed::decode(&returned_value);
+
+        assert_eq!(mode, returned_mode);
+        assert_eq!(pid, returned_pid);
+        assert_eq!(real_speed, returned_speed.into());
     }
 }
