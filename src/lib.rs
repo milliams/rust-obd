@@ -33,7 +33,7 @@ impl Decode for CoolantTemperature {
 
 impl From<i16> for CoolantTemperature {
     fn from(value: i16) -> Self {
-        let bound_value = max(min(value, 215), -40);
+        let bound_value = bound(-40, 215, value);
         CoolantTemperature{value: (bound_value + 40) as u8}
     }
 }
@@ -107,6 +107,10 @@ fn transform_u16_to_array_of_u8(x: u16) -> Vec<u8> {
     let b1: u8 = ((x >> 8) & 0xff) as u8;
     let b2: u8 = ((x >> 0) & 0xff) as u8;
     return vec![b1, b2]
+}
+
+fn bound<T: Ord>(lower: T, upper: T, value: T) -> T {
+    max(min(value, upper), lower)
 }
 
 #[cfg(test)]
