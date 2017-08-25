@@ -128,6 +128,26 @@ pub fn encode(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> 
                 }
             }
         }
+        else if pid == 0x0D {
+            match value.downcast_ref::<u8>() {
+                Some(val) => {
+                    return Ok(VehicleSpeed::from(*val).encode())
+                }
+                None => {
+                    return Err("Incorrect type, should be u8")
+                }
+            }
+        }
+        else if pid == 0x5E {
+            match value.downcast_ref::<f32>() {
+                Some(val) => {
+                    return Ok(EngineFuelRate::from(*val).encode())
+                }
+                None => {
+                    return Err("Incorrect type, should be f32")
+                }
+            }
+        }
         else {
             return Err("Could not match PID")
         }
