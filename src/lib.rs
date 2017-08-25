@@ -44,9 +44,36 @@ impl Into<i16> for CoolantTemperature {
     }
 }
 
-pub fn encode_vehicle_speed(speed: u8) -> ObdValue {
-    vec![speed]
+
+pub struct VehicleSpeed {
+    value: u8,
 }
+
+impl Encode for VehicleSpeed {
+    fn encode(&self) -> ObdValue {
+        vec![self.value]
+    }
+}
+
+impl Decode for VehicleSpeed {
+    fn decode(value: &ObdValue) -> Self {
+        // TODO Check that this contains exactly one byte
+        VehicleSpeed{value: value[0]}
+    }
+}
+
+impl From<u8> for VehicleSpeed {
+    fn from(value: u8) -> Self {
+        VehicleSpeed{value: value}
+    }
+}
+
+impl Into<u8> for VehicleSpeed {
+    fn into(self) -> u8 {
+        self.value
+    }
+}
+
 
 pub fn encode_engine_fuel_rate(fuel_rate: f32) -> ObdValue {
     let scaled = (fuel_rate * 20.0) as u16;
@@ -115,6 +142,31 @@ mod tests {
 
         let r4: ObdValue = CoolantTemperature::from(-300).encode();
         assert_eq!(r4, vec![0x00]);
+    }
+
+    #[test]
+    fn test_vehicle_speed() {
+        let r1: u8 = VehicleSpeed::decode(&vec![0x7B]).into();
+        assert_eq!(r1, 123);
+
+        let r2: ObdValue = VehicleSpeed::from(123).encode();
+        assert_eq!(r2, vec![0x7B]);
+
+        // Test round-trip
+        let speed = 91;
+        let a1 = VehicleSpeed::from(speed);  // Make the custom object
+        let b1 = a1.encode();  // Encode it as a byte-stream
+        let c1 = VehicleSpeed::decode(&b1);  // Decode the byte-stream
+        let d1: u8 = c1.into();  // Convert it back to an integer
+        assert_eq!(d1, speed);
+
+        // And round-trip the other way
+        let encoded_speed = vec![0xA4];
+        let a2 = VehicleSpeed::decode(&encoded_speed);
+        let b2: u8 = a2.into();
+        let c2 = VehicleSpeed::from(b2);
+        let d2 = c2.encode();
+        assert_eq!(d2, encoded_speed);
     }
 
     #[test]
