@@ -2,8 +2,11 @@ use std::any::Any;
 
 mod util;
 
+/// A byte-stream encoded value
 pub type ObdValue = Vec<u8>;
+/// A byte-stream encoded query message
 pub type ObdQuery = Vec<u8>;
+/// A byte-stream encoded response message
 pub type ObdResponse = Vec<u8>;
 
 /// Convert internal representation into a byte-stream
@@ -17,6 +20,7 @@ pub trait Decode {
 }
 
 
+/// Coolant temperature in ℃
 pub struct CoolantTemperature {
     value: u8,
 }
@@ -50,6 +54,7 @@ impl Into<i16> for CoolantTemperature {
 }
 
 
+/// Vehicle speed in km/h
 pub struct VehicleSpeed {
     value: u8,
 }
@@ -80,6 +85,7 @@ impl Into<u8> for VehicleSpeed {
 }
 
 
+/// Engine fuel rate in L/h
 pub struct EngineFuelRate {
     value: [u8; 2],
 }
@@ -149,22 +155,26 @@ pub fn encode_pid(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static s
 }
 
 
+/// Given a mode and pid, create the byte-stream to send
 pub fn encode_query(mode: u8, pid: u8) -> Result<ObdQuery, &'static str> {
     // TODO check that Mode and PID match and are in range
     Ok(vec![mode, pid])
 }
 
+/// Given a byte-stream query, work out what it means
 pub fn decode_query(query: &ObdQuery) -> Result<(u8, u8), &'static str> {
     // TODO Check that Mode and PID match and are in range
     Ok((query[0], query[1]))
 }
 
+/// Given a query and appropriate data to return, construct the byte-stream
 pub fn construct_reponse(query: &ObdQuery, data: &ObdValue) -> Result<ObdResponse, &'static str> {
     let mut response = vec![query[0] + 0x40, query[1]];
     response.extend(data);
     Ok(response)
 }
 
+/// Given a byte-stream response, extract the header and encoded value
 pub fn parse_reponse(response: &ObdResponse) -> Result<(u8, u8, ObdValue), &'static str> {
     // Todo Check that the mode and PID is sensible
     let mode = response[0] - 0x40;
