@@ -5,12 +5,12 @@ mod util;
 pub type ObdValue = Vec<u8>;
 
 /// Convert internal representation into a byte-stream
-trait Encode {
+pub trait Encode {
     fn encode(&self) -> ObdValue;
 }
 
 /// Convert byte-stream into internal representation
-trait Decode {
+pub trait Decode {
     fn decode(&ObdValue) -> Self;
 }
 
@@ -116,6 +116,7 @@ impl Into<f32> for EngineFuelRate {
 }
 
 
+/// Encode the value for a given mode and PID
 pub fn encode(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> {
     if mode == 0x01 {
         if pid == 0x05 {
