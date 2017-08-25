@@ -30,14 +30,16 @@ impl Encode for CoolantTemperature {
 impl Decode for CoolantTemperature {
     fn decode(value: &ObdValue) -> Self {
         // TODO Check that this contains exactly one byte
-        CoolantTemperature{value: value[0]}
+        CoolantTemperature { value: value[0] }
     }
 }
 
 impl From<i16> for CoolantTemperature {
     fn from(value: i16) -> Self {
         let bound_value = util::bound(-40, 215, value);
-        CoolantTemperature{value: (bound_value + 40) as u8}
+        CoolantTemperature {
+            value: (bound_value + 40) as u8,
+        }
     }
 }
 
@@ -61,13 +63,13 @@ impl Encode for VehicleSpeed {
 impl Decode for VehicleSpeed {
     fn decode(value: &ObdValue) -> Self {
         // TODO Check that this contains exactly one byte
-        VehicleSpeed{value: value[0]}
+        VehicleSpeed { value: value[0] }
     }
 }
 
 impl From<u8> for VehicleSpeed {
     fn from(value: u8) -> Self {
-        VehicleSpeed{value: value}
+        VehicleSpeed { value: value }
     }
 }
 
@@ -91,7 +93,9 @@ impl Encode for EngineFuelRate {
 impl Decode for EngineFuelRate {
     fn decode(value: &ObdValue) -> Self {
         // TODO Check that this contains exactly two bytes
-        EngineFuelRate{value: [value[0], value[1]]}
+        EngineFuelRate {
+            value: [value[0], value[1]],
+        }
     }
 }
 
@@ -99,15 +103,15 @@ impl From<f32> for EngineFuelRate {
     fn from(value: f32) -> Self {
         let bound_value = if value < 0.0 {
             0.0
-        }
-        else if value > 3276.75 {
+        } else if value > 3276.75 {
             3276.75
-        }
-        else {
+        } else {
             value
         };
         let scaled = (bound_value * 20.0) as u16;
-        EngineFuelRate{value: util::transform_u16_to_array_of_u8(scaled)}
+        EngineFuelRate {
+            value: util::transform_u16_to_array_of_u8(scaled),
+        }
     }
 }
 
@@ -123,40 +127,24 @@ pub fn encode_pid(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static s
     if mode == 0x01 {
         if pid == 0x05 {
             match value.downcast_ref::<i16>() {
-                Some(val) => {
-                    return Ok(CoolantTemperature::from(*val).encode())
-                }
-                None => {
-                    return Err("Incorrect type, should be i16")
-                }
+                Some(val) => return Ok(CoolantTemperature::from(*val).encode()),
+                None => return Err("Incorrect type, should be i16"),
             }
-        }
-        else if pid == 0x0D {
+        } else if pid == 0x0D {
             match value.downcast_ref::<u8>() {
-                Some(val) => {
-                    return Ok(VehicleSpeed::from(*val).encode())
-                }
-                None => {
-                    return Err("Incorrect type, should be u8")
-                }
+                Some(val) => return Ok(VehicleSpeed::from(*val).encode()),
+                None => return Err("Incorrect type, should be u8"),
             }
-        }
-        else if pid == 0x5E {
+        } else if pid == 0x5E {
             match value.downcast_ref::<f32>() {
-                Some(val) => {
-                    return Ok(EngineFuelRate::from(*val).encode())
-                }
-                None => {
-                    return Err("Incorrect type, should be f32")
-                }
+                Some(val) => return Ok(EngineFuelRate::from(*val).encode()),
+                None => return Err("Incorrect type, should be f32"),
             }
+        } else {
+            return Err("Could not match PID");
         }
-        else {
-            return Err("Could not match PID")
-        }
-    }
-    else {
-        return Err("Could not match mode")
+    } else {
+        return Err("Could not match mode");
     }
 }
 
@@ -172,7 +160,7 @@ pub fn decode_query(query: &ObdQuery) -> Result<(u8, u8), &'static str> {
 }
 
 pub fn construct_reponse(query: &ObdQuery, data: &ObdValue) -> Result<ObdResponse, &'static str> {
-    let mut response = vec![query[0]+0x40, query[1]];
+    let mut response = vec![query[0] + 0x40, query[1]];
     response.extend(data);
     Ok(response)
 }
@@ -200,18 +188,18 @@ mod tests {
 
         // Test round-trip
         let temperature = 91;
-        let a1 = CoolantTemperature::from(temperature);  // Make the custom object
-        let b1 = a1.encode();  // Encode it as a byte-stream
-        let c1 = CoolantTemperature::decode(&b1);  // Decode the byte-stream
-        let d1: i16 = c1.into();  // Convert it back to an integer
+        let a1 = CoolantTemperature::from(temperature); // Make the custom object
+        let b1 = a1.encode(); // Encode it as a byte-stream
+        let c1 = CoolantTemperature::decode(&b1); // Decode the byte-stream
+        let d1: i16 = c1.into(); // Convert it back to an integer
         assert_eq!(d1, temperature);
 
         // And round-trip the other way
         let encoded_temperature = vec![0xA4];
-        let a2 = CoolantTemperature::decode(&encoded_temperature);  // Decode the byte-stream
-        let b2: i16 = a2.into();  // Convert it to an integer
-        let c2 = CoolantTemperature::from(b2);  // Make the custom object
-        let d2 = c2.encode();  // Encode it as a byte-stream
+        let a2 = CoolantTemperature::decode(&encoded_temperature); // Decode the byte-stream
+        let b2: i16 = a2.into(); // Convert it to an integer
+        let c2 = CoolantTemperature::from(b2); // Make the custom object
+        let d2 = c2.encode(); // Encode it as a byte-stream
         assert_eq!(d2, encoded_temperature);
 
         let r3: ObdValue = CoolantTemperature::from(300).encode();
@@ -231,10 +219,10 @@ mod tests {
 
         // Test round-trip
         let speed = 91;
-        let a1 = VehicleSpeed::from(speed);  // Make the custom object
-        let b1 = a1.encode();  // Encode it as a byte-stream
-        let c1 = VehicleSpeed::decode(&b1);  // Decode the byte-stream
-        let d1: u8 = c1.into();  // Convert it back to an integer
+        let a1 = VehicleSpeed::from(speed); // Make the custom object
+        let b1 = a1.encode(); // Encode it as a byte-stream
+        let c1 = VehicleSpeed::decode(&b1); // Decode the byte-stream
+        let d1: u8 = c1.into(); // Convert it back to an integer
         assert_eq!(d1, speed);
 
         // And round-trip the other way
@@ -256,18 +244,18 @@ mod tests {
 
         // Test round-trip
         let rate = 493.7;
-        let a1 = EngineFuelRate::from(rate);  // Make the custom object
-        let b1 = a1.encode();  // Encode it as a byte-stream
-        let c1 = EngineFuelRate::decode(&b1);  // Decode the byte-stream
-        let d1: f32 = c1.into();  // Convert it back to an integer
+        let a1 = EngineFuelRate::from(rate); // Make the custom object
+        let b1 = a1.encode(); // Encode it as a byte-stream
+        let c1 = EngineFuelRate::decode(&b1); // Decode the byte-stream
+        let d1: f32 = c1.into(); // Convert it back to an integer
         assert_eq!(d1, rate);
 
         // And round-trip the other way
         let encoded_rate = vec![0xA4, 0x01];
-        let a2 = EngineFuelRate::decode(&encoded_rate);  // Decode the byte-stream
-        let b2: f32 = a2.into();  // Convert it to an integer
-        let c2 = EngineFuelRate::from(b2);  // Make the custom object
-        let d2 = c2.encode();  // Encode it as a byte-stream
+        let a2 = EngineFuelRate::decode(&encoded_rate); // Decode the byte-stream
+        let b2: f32 = a2.into(); // Convert it to an integer
+        let c2 = EngineFuelRate::from(b2); // Make the custom object
+        let d2 = c2.encode(); // Encode it as a byte-stream
         assert_eq!(d2, encoded_rate);
 
         let r3: ObdValue = EngineFuelRate::from(70000.).encode();
@@ -300,11 +288,13 @@ mod tests {
         // At the remote end, receive the query and work out what it means
         let (remote_mode, remote_pid) = decode_query(&query).expect("Decoding failed");
         // Ask the system for the real value
-        let remote_value = encode_pid(remote_mode, remote_pid, &real_speed).expect("Encoding failed");
+        let remote_value =
+            encode_pid(remote_mode, remote_pid, &real_speed).expect("Encoding failed");
         // Construct the message to send back
         let response = construct_reponse(&query, &remote_value).expect("Decoding failed");
         // At the local end again, unpack the response
-        let (returned_mode, returned_pid, returned_value) = parse_reponse(&response).expect("Parse failed");
+        let (returned_mode, returned_pid, returned_value) =
+            parse_reponse(&response).expect("Parse failed");
         // and decode the value returned
         let returned_speed = VehicleSpeed::decode(&returned_value);
 
