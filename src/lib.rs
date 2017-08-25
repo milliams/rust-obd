@@ -1,3 +1,7 @@
+/*!
+This is a crate to help encode and decode OBD-II messages
+*/
+
 use std::any::Any;
 
 mod util;
