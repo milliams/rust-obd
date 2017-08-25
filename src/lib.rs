@@ -303,13 +303,12 @@ mod tests {
         // Construct the message to send back
         let response = construct_reponse(&query, &remote_value).expect("Decoding failed");
         // At the local end again, unpack the response
-        let (returned_mode, returned_pid, returned_value) =
-            parse_reponse(&response).expect("Parse failed");
+        let (ret_mode, ret_pid, ret_value) = parse_reponse(&response).expect("Parse failed");
         // and decode the value returned
-        let returned_speed = VehicleSpeed::decode(&returned_value);
+        let ret_speed = VehicleSpeed::decode(&ret_value);
 
-        assert_eq!(mode, returned_mode);
-        assert_eq!(pid, returned_pid);
-        assert_eq!(real_speed, returned_speed.into());
+        assert_eq!(mode, ret_mode);
+        assert_eq!(pid, ret_pid);
+        assert_eq!(real_speed, ret_speed.into());
     }
 }
