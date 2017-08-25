@@ -1,5 +1,6 @@
-use std::cmp::{max, min};
 use std::any::Any;
+
+mod util;
 
 pub type ObdValue = Vec<u8>;
 
@@ -33,7 +34,7 @@ impl Decode for CoolantTemperature {
 
 impl From<i16> for CoolantTemperature {
     fn from(value: i16) -> Self {
-        let bound_value = bound(-40, 215, value);
+        let bound_value = util::bound(-40, 215, value);
         CoolantTemperature{value: (bound_value + 40) as u8}
     }
 }
@@ -104,13 +105,13 @@ impl From<f32> for EngineFuelRate {
             value
         };
         let scaled = (bound_value * 20.0) as u16;
-        EngineFuelRate{value: transform_u16_to_array_of_u8(scaled)}
+        EngineFuelRate{value: util::transform_u16_to_array_of_u8(scaled)}
     }
 }
 
 impl Into<f32> for EngineFuelRate {
     fn into(self) -> f32 {
-        transform_array_of_u8_to_u16(self.value) as f32 / 20.
+        util::transform_array_of_u8_to_u16(self.value) as f32 / 20.
     }
 }
 
@@ -136,20 +137,6 @@ pub fn encode(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> 
     }
 }
 
-
-fn transform_u16_to_array_of_u8(x: u16) -> [u8; 2] {
-    let b1: u8 = ((x >> 8) & 0xff) as u8;
-    let b2: u8 = ((x >> 0) & 0xff) as u8;
-    return [b1, b2]
-}
-
-fn transform_array_of_u8_to_u16(x: [u8; 2]) -> u16 {
-    ((x[0] as u16) << 8) + ((x[1] as u16) << 0)
-}
-
-fn bound<T: Ord>(lower: T, upper: T, value: T) -> T {
-    max(min(value, upper), lower)
-}
 
 #[cfg(test)]
 mod tests {
