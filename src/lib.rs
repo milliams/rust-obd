@@ -75,9 +75,43 @@ impl Into<u8> for VehicleSpeed {
 }
 
 
-pub fn encode_engine_fuel_rate(fuel_rate: f32) -> ObdValue {
-    let scaled = (fuel_rate * 20.0) as u16;
-    transform_u16_to_array_of_u8(scaled)
+pub struct EngineFuelRate {
+    value: [u8; 2],
+}
+
+impl Encode for EngineFuelRate {
+    fn encode(&self) -> ObdValue {
+        self.value.to_vec()
+    }
+}
+
+impl Decode for EngineFuelRate {
+    fn decode(value: &ObdValue) -> Self {
+        // TODO Check that this contains exactly two bytes
+        EngineFuelRate{value: [value[0], value[1]]}
+    }
+}
+
+impl From<f32> for EngineFuelRate {
+    fn from(value: f32) -> Self {
+        let bound_value = if value < 0.0 {
+            0.0
+        }
+        else if value > 3276.75 {
+            3276.75
+        }
+        else {
+            value
+        };
+        let scaled = (bound_value * 20.0) as u16;
+        EngineFuelRate{value: transform_u16_to_array_of_u8(scaled)}
+    }
+}
+
+impl Into<f32> for EngineFuelRate {
+    fn into(self) -> f32 {
+        transform_array_of_u8_to_u16(self.value) as f32 / 20.
+    }
 }
 
 
@@ -103,10 +137,14 @@ pub fn encode(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static str> 
 }
 
 
-fn transform_u16_to_array_of_u8(x: u16) -> Vec<u8> {
+fn transform_u16_to_array_of_u8(x: u16) -> [u8; 2] {
     let b1: u8 = ((x >> 8) & 0xff) as u8;
     let b2: u8 = ((x >> 0) & 0xff) as u8;
-    return vec![b1, b2]
+    return [b1, b2]
+}
+
+fn transform_array_of_u8_to_u16(x: [u8; 2]) -> u16 {
+    ((x[0] as u16) << 8) + ((x[1] as u16) << 0)
 }
 
 fn bound<T: Ord>(lower: T, upper: T, value: T) -> T {
@@ -171,6 +209,37 @@ mod tests {
         let c2 = VehicleSpeed::from(b2);
         let d2 = c2.encode();
         assert_eq!(d2, encoded_speed);
+    }
+
+    #[test]
+    fn test_engine_fuel_rate() {
+        let r1: f32 = EngineFuelRate::decode(&vec![0x7B, 0x28]).into();
+        assert_eq!(r1, 1576.4);
+
+        let r2: ObdValue = EngineFuelRate::from(1576.4).encode();
+        assert_eq!(r2, vec![0x7B, 0x28]);
+
+        // Test round-trip
+        let rate = 493.7;
+        let a1 = EngineFuelRate::from(rate);  // Make the custom object
+        let b1 = a1.encode();  // Encode it as a byte-stream
+        let c1 = EngineFuelRate::decode(&b1);  // Decode the byte-stream
+        let d1: f32 = c1.into();  // Convert it back to an integer
+        assert_eq!(d1, rate);
+
+        // And round-trip the other way
+        let encoded_rate = vec![0xA4, 0x01];
+        let a2 = EngineFuelRate::decode(&encoded_rate);  // Decode the byte-stream
+        let b2: f32 = a2.into();  // Convert it to an integer
+        let c2 = EngineFuelRate::from(b2);  // Make the custom object
+        let d2 = c2.encode();  // Encode it as a byte-stream
+        assert_eq!(d2, encoded_rate);
+
+        let r3: ObdValue = EngineFuelRate::from(70000.).encode();
+        assert_eq!(r3, vec![0xFF, 0xFF]);
+
+        let r4: ObdValue = EngineFuelRate::from(-10.).encode();
+        assert_eq!(r4, vec![0x00, 0x00]);
     }
 
     #[test]
