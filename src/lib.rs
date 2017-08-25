@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::any::Any;
 
 pub type ObdValue = Vec<u8>;
@@ -12,6 +13,7 @@ trait Decode {
     fn decode(&ObdValue) -> Self;
 }
 
+
 pub struct CoolantTemperature {
     value: u8,
 }
@@ -24,13 +26,15 @@ impl Encode for CoolantTemperature {
 
 impl Decode for CoolantTemperature {
     fn decode(value: &ObdValue) -> Self {
+        // TODO Check that this contains exactly one byte
         CoolantTemperature{value: value[0]}
     }
 }
 
 impl From<i16> for CoolantTemperature {
     fn from(value: i16) -> Self {
-        CoolantTemperature{value: (value + 40) as u8}
+        let bound_value = max(min(value, 215), -40);
+        CoolantTemperature{value: (bound_value + 40) as u8}
     }
 }
 
@@ -100,11 +104,17 @@ mod tests {
 
         // And round-trip the other way
         let encoded_temperature = vec![0xA4];
-        let a2 = CoolantTemperature::decode(&encoded_temperature);
-        let b2: i16 = a2.into();
-        let c2 = CoolantTemperature::from(b2);
-        let d2 = c2.encode();
+        let a2 = CoolantTemperature::decode(&encoded_temperature);  // Decode the byte-stream
+        let b2: i16 = a2.into();  // Convert it to an integer
+        let c2 = CoolantTemperature::from(b2);  // Make the custom object
+        let d2 = c2.encode();  // Encode it as a byte-stream
         assert_eq!(d2, encoded_temperature);
+
+        let r3: ObdValue = CoolantTemperature::from(300).encode();
+        assert_eq!(r3, vec![0xFF]);
+
+        let r4: ObdValue = CoolantTemperature::from(-300).encode();
+        assert_eq!(r4, vec![0x00]);
     }
 
     #[test]
