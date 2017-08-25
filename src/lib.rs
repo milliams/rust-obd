@@ -161,23 +161,23 @@ pub fn encode_pid(mode: u8, pid: u8, value: &Any) -> Result<ObdValue, &'static s
 }
 
 
-fn encode_query(mode: u8, pid: u8) -> Result<ObdQuery, &'static str> {
+pub fn encode_query(mode: u8, pid: u8) -> Result<ObdQuery, &'static str> {
     // TODO check that Mode and PID match and are in range
     Ok(vec![mode, pid])
 }
 
-fn decode_query(query: &ObdQuery) -> Result<(u8, u8), &'static str> {
+pub fn decode_query(query: &ObdQuery) -> Result<(u8, u8), &'static str> {
     // TODO Check that Mode and PID match and are in range
     Ok((query[0], query[1]))
 }
 
-fn construct_reponse(query: &ObdQuery, data: &ObdValue) -> Result<ObdResponse, &'static str> {
+pub fn construct_reponse(query: &ObdQuery, data: &ObdValue) -> Result<ObdResponse, &'static str> {
     let mut response = vec![query[0]+0x40, query[1]];
     response.extend(data);
     Ok(response)
 }
 
-fn parse_reponse(response: &ObdResponse) -> Result<(u8, u8, ObdValue), &'static str> {
+pub fn parse_reponse(response: &ObdResponse) -> Result<(u8, u8, ObdValue), &'static str> {
     // Todo Check that the mode and PID is sensible
     let mode = response[0] - 0x40;
     let pid = response[1];
